@@ -100,7 +100,12 @@ select.inp{appearance:none;background-image:linear-gradient(45deg,transparent 50
 .teambox{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--bg)}
 .teambox h4{font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:700}
 .teambox .inp+.inp{margin-top:6px}
-.setgrid{display:grid;grid-template-columns:60px 1fr 1fr;gap:6px;align-items:center}
+.setgrid{display:grid;grid-template-columns:52px 1fr 1fr 34px;gap:6px;align-items:center}
+.setrow{display:contents}
+.set-del{width:34px;height:38px;border-radius:9px;color:var(--muted);font-size:18px;line-height:1}
+.set-del:hover{color:var(--loss);background:var(--surface2)}
+.set-add{margin-top:8px;width:100%;padding:9px;border-radius:10px;border:1px dashed var(--line);color:var(--muted);font-size:13px;font-weight:700}
+.set-add:hover{border-color:var(--ball);color:var(--ball)}
 .setgrid .h{font-size:11px;color:var(--muted);text-align:center}
 .setgrid .inp{text-align:center;padding:9px 4px}
 .preview{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--surface2);font-size:14px}
@@ -435,10 +440,9 @@ function openMatchForm(){
       <div class="teambox"><h4>A팀</h4><select class="inp" id="a1">${playerOptions(myId())}</select><select class="inp dbl" id="a2">${playerOptions()}</select></div>
       <div class="teambox"><h4>B팀</h4><select class="inp" id="b1">${playerOptions()}</select><select class="inp dbl" id="b2">${playerOptions()}</select></div>
     </div>
-    <div style="margin-top:14px"><label class="f">세트 스코어 (게임 수 · 안 한 세트는 비워 두세요)</label>
-      <div class="setgrid"><span></span><span class="h">A팀</span><span class="h">B팀</span>
-        ${[1,2,3].map(i=>`<span class="h">${i}세트</span><input class="inp num" inputmode="numeric" id="s${i}a" maxlength="2"><input class="inp num" inputmode="numeric" id="s${i}b" maxlength="2">`).join('')}
-      </div></div>
+    <div style="margin-top:14px"><label class="f">세트 스코어 (게임 수)</label>
+      <div class="setgrid" id="setGrid"><span></span><span class="h">A팀</span><span class="h">B팀</span><span></span></div>
+      <button class="set-add" id="setAdd" type="button">+ 세트 추가</button></div>
     <div style="margin-top:12px"><label class="f" for="mDate">경기 날짜</label><input class="inp" type="date" id="mDate" value="${today()}"></div>
     <div class="preview" id="mPrev">스코어를 입력하면 결과가 여기에 보여요.</div>
     <div class="err" id="mErr"></div>
@@ -447,8 +451,10 @@ function openMatchForm(){
     const a = [ $('#a1').value ].concat(F.type==='doubles'?[$('#a2').value]:[]);
     const b = [ $('#b1').value ].concat(F.type==='doubles'?[$('#b2').value]:[]);
     const sets = []; let bad = false;
-    for(const i of [1,2,3]){
-      const x=$(`#s${i}a`).value.trim(), y=$(`#s${i}b`).value.trim();
+    const rows = [...document.querySelectorAll('#setGrid .setrow')];
+    for(let k=0;k<rows.length;k++){
+      const i = k+1, ins = rows[k].querySelectorAll('input');
+      const x=ins[0].value.trim(), y=ins[1].value.trim();
       if(x===''&&y==='') continue;
       if(!/^\d{1,2}$/.test(x)||!/^\d{1,2}$/.test(y)){ bad='세트 스코어는 숫자로 양쪽 모두 입력해 주세요.'; continue; }
       if(+x===+y){ bad=`${i}세트가 동점이에요. 이긴 쪽이 있어야 해요.`; continue; }
@@ -473,6 +479,21 @@ function openMatchForm(){
       : '스코어를 입력하면 결과가 여기에 보여요.';
     $('#mErr').textContent = '';
   };
+  const MAX_SETS = 5;
+  const renumber = () => {
+    const rows = [...document.querySelectorAll('#setGrid .setrow')];
+    rows.forEach((r,k)=>{ r.querySelector('.h').textContent = `${k+1}세트`; const d=r.querySelector('.set-del'); d.style.visibility = (rows.length>1 && k===rows.length-1) ? 'visible' : 'hidden'; });
+    $('#setAdd').style.display = rows.length>=MAX_SETS ? 'none' : '';
+  };
+  const addSet = focus => {
+    const row = document.createElement('div'); row.className='setrow';
+    row.innerHTML = `<span class="h"></span><input class="inp num" inputmode="numeric" maxlength="2" aria-label="A팀 게임 수"><input class="inp num" inputmode="numeric" maxlength="2" aria-label="B팀 게임 수"><button class="set-del" type="button" aria-label="이 세트 삭제">×</button>`;
+    row.querySelector('.set-del').onclick = () => { row.remove(); renumber(); upd(); };
+    $('#setGrid').appendChild(row); renumber();
+    if(focus) row.querySelector('input').focus();
+  };
+  $('#setAdd').onclick = () => { addSet(true); upd(); };
+  addSet(false);
   const setType = t => { F.type=t; document.querySelectorAll('#mfType button').forEach(b=>b.classList.toggle('on',b.dataset.t===t)); document.querySelectorAll('.dbl').forEach(e=>e.style.display=t==='doubles'?'':'none'); upd(); };
   document.querySelectorAll('#mfType button').forEach(b=>b.onclick=()=>setType(b.dataset.t));
   $('#modal').addEventListener('input', upd); $('#modal').addEventListener('change', upd);
