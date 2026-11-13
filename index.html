@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>우리끼리 테니스 리그</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c1611; --surface:#132119; --surface2:#1a2c22; --line:#2a4033;
+  --text:#eef4ee; --muted:#8fa597; --ball:#d8f24a; --ball-ink:#1a2208;
+  --win:#d8f24a; --loss:#e0795a; --pending:#f0b74a; --court:#2f7a52;
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:"Noto Sans KR",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{min-height:100vh}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+input,select{font:inherit;color:var(--text)}
+.num{font-family:"Space Grotesk","Noto Sans KR",sans-serif;font-variant-numeric:tabular-nums}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px 120px}
+
+/* header */
+header{position:relative;padding:28px 0 18px;border-bottom:1px solid var(--line);margin-bottom:16px;overflow:hidden}
+header::after{content:"";position:absolute;right:-40px;top:-30px;width:150px;height:150px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#e6fb6a,#c4dc2c 60%,#9fb51c);opacity:.14;pointer-events:none}
+.eyebrow{font-family:"Space Grotesk";letter-spacing:.18em;font-size:12px;color:var(--ball);font-weight:700}
+h1{font-size:28px;font-weight:900;margin-top:6px;letter-spacing:-.02em}
+.sub{color:var(--muted);font-size:14px;margin-top:6px}
+.me-chip{display:inline-flex;align-items:center;gap:6px;margin-top:12px;font-size:13px;padding:6px 10px;border-radius:999px;background:var(--surface2);border:1px solid var(--line)}
+.me-chip b{color:var(--ball)}
+
+/* tabs */
+nav.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:16px;position:sticky;top:8px;z-index:5}
+nav.tabs button{flex:1;padding:10px 6px;border-radius:9px;font-size:14px;font-weight:700;color:var(--muted)}
+nav.tabs button.on{background:var(--ball);color:var(--ball-ink)}
+.badge{display:inline-block;min-width:18px;padding:1px 6px;margin-left:4px;border-radius:999px;font-size:11px;background:var(--pending);color:#2a1a00}
+
+.seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+.seg button{padding:7px 14px;border-radius:8px;font-size:13px;font-weight:700;color:var(--muted)}
+.seg button.on{background:var(--surface2);color:var(--text);box-shadow:inset 0 0 0 1px var(--line)}
+.row-between{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.hint{font-size:12px;color:var(--muted)}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.stack>*+*{margin-top:10px}
+
+/* ranking */
+.rank-list{display:flex;flex-direction:column;gap:8px}
+.rank{display:grid;grid-template-columns:38px 1fr auto;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line);cursor:pointer;text-align:left;width:100%}
+.rank:hover{border-color:#3d5a48}
+.rank .pos{font-family:"Space Grotesk";font-size:20px;font-weight:700;color:var(--muted);text-align:center}
+.rank.top1{border-color:var(--ball);background:linear-gradient(90deg,rgba(216,242,74,.12),var(--surface) 60%)}
+.rank.top1 .pos{color:var(--ball)}
+.rank.top2 .pos,.rank.top3 .pos{color:var(--text)}
+.rank .name{font-weight:700;font-size:16px}
+.rank .meta{font-size:12px;color:var(--muted);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.rank .metric{text-align:right}
+.rank .metric .big{font-family:"Space Grotesk";font-size:22px;font-weight:700}
+.rank .metric .lbl{font-size:11px;color:var(--muted)}
+.rank.ineligible{opacity:.55}
+.form{display:inline-flex;gap:3px}
+.form i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.form i.w{background:var(--win)} .form i.l{background:var(--loss)}
+.divider-label{font-size:12px;color:var(--muted);margin:14px 2px 6px}
+
+/* match card */
+.match{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.match.pending{border-left:3px solid var(--pending)}
+.match-top{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);margin-bottom:8px;gap:6px;flex-wrap:wrap}
+.tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--surface2);border:1px solid var(--line);color:var(--text)}
+.tag.p{background:rgba(240,183,74,.15);border-color:rgba(240,183,74,.5);color:var(--pending)}
+.tag.c{background:rgba(47,122,82,.25);border-color:var(--court);color:#9fe0b9}
+.side{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:4px 0}
+.side .who{font-weight:500}
+.side.win .who{font-weight:900}
+.side.win .who::after{content:" ●";color:var(--win);font-size:10px;vertical-align:middle}
+.side .sets{display:flex;gap:6px}
+.side .sets span{width:26px;text-align:center;font-family:"Space Grotesk";font-weight:700;color:var(--muted)}
+.side .sets span.hi{color:var(--text)}
+.match-actions{display:flex;gap:6px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap}
+
+.btn{padding:9px 14px;border-radius:10px;font-weight:700;font-size:14px;background:var(--surface2);border:1px solid var(--line)}
+.btn:hover{border-color:#4a6a56}
+.btn.primary{background:var(--ball);color:var(--ball-ink);border-color:var(--ball)}
+.btn.danger{color:var(--loss)}
+.btn.sm{padding:6px 10px;font-size:12px;border-radius:8px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+.fab{position:fixed;right:max(16px,calc(50% - 364px));bottom:22px;z-index:20;padding:14px 20px;border-radius:999px;font-size:15px;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+
+/* forms */
+label.f{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;font-weight:500}
+.inp{width:100%;padding:11px 12px;border-radius:10px;background:var(--bg);border:1px solid var(--line);outline:none}
+.inp:focus{border-color:var(--ball)}
+select.inp{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 16px) 50%,calc(100% - 11px) 50%;background-size:5px 5px;background-repeat:no-repeat;padding-right:30px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.teambox{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--bg)}
+.teambox h4{font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:700}
+.teambox .inp+.inp{margin-top:6px}
+.setgrid{display:grid;grid-template-columns:60px 1fr 1fr;gap:6px;align-items:center}
+.setgrid .h{font-size:11px;color:var(--muted);text-align:center}
+.setgrid .inp{text-align:center;padding:9px 4px}
+.preview{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--surface2);font-size:14px}
+.err{color:var(--loss);font-size:13px;margin-top:8px}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(3,8,5,.7);display:none;align-items:flex-end;justify-content:center;z-index:50;padding:0}
+.overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--line);border-radius:18px 18px 0 0;width:100%;max-width:560px;max-height:92vh;overflow:auto;padding:20px 18px 24px}
+@media(min-width:640px){.overlay{align-items:center;padding:20px}.modal{border-radius:18px}}
+.modal h3{font-size:18px;font-weight:900;margin-bottom:14px}
+.modal-foot{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+
+.notice{padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.55;background:var(--surface);border:1px dashed var(--line);color:var(--muted)}
+.notice b{color:var(--text)}
+.empty{text-align:center;color:var(--muted);padding:36px 12px;font-size:14px;line-height:1.6}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;font-weight:700;opacity:0;transition:.2s;z-index:80;pointer-events:none;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.stat{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
+.stat .v{font-family:"Space Grotesk";font-size:20px;font-weight:700}
+.stat .k{font-size:11px;color:var(--muted);margin-top:2px}
+.radio-row{display:flex;gap:8px}
+.radio-row label{flex:1;border:1px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;font-size:14px}
+.radio-row label.on{border-color:var(--ball);background:rgba(216,242,74,.08)}
+.radio-row input{display:none}
+.radio-row small{display:block;color:var(--muted);font-size:12px;margin-top:4px}
+.player-row{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:12px;cursor:pointer;width:100%;text-align:left}
+.player-row .r{font-size:12px;color:var(--muted)}
+h2.sec{font-size:15px;font-weight:900;margin:22px 0 10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">TENNIS LEAGUE</div>
+    <h1>우리끼리 테니스 리그</h1>
+    <p class="sub">경기가 끝나면 결과를 올리세요. 운영자가 확정하면 순위에 반영됩니다.</p>
+    <div id="meChip"></div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="rank" class="on">순위</button>
+    <button data-tab="matches">경기</button>
+    <button data-tab="players">선수</button>
+    <button data-tab="admin" id="adminTab" hidden>운영</button>
+  </nav>
+
+  <main id="main"><div class="empty">리그 데이터를 불러오는 중…</div></main>
+
+  <footer style="margin-top:40px;text-align:center"><button class="hint" data-act="adminLogin" id="adminLink" style="text-decoration:underline">운영자 로그인</button></footer>
+</div>
+
+<button class="btn primary fab" id="fab" hidden>+ 결과 입력</button>
+
+<div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+/* ===================== state ===================== */
+const S = {
+  sb:null, me:null, adminPw:null,
+  players:{}, matches:[], confirmed:[],
+  settings:{ rankingMode:'winrate', minGames:0 },
+  loaded:false, loadErr:false,
+  tab:'rank', rankType:'singles', matchView:'pending', pendingRender:false
+};
+const ELO_START = 1500, ELO_K = 32;
+const store = {
+  get(k, ss){ try{ return JSON.parse((ss?sessionStorage:localStorage).getItem(k)); }catch(e){ return null; } },
+  set(k, v, ss){ try{ (ss?sessionStorage:localStorage).setItem(k, JSON.stringify(v)); }catch(e){} },
+  del(k, ss){ try{ (ss?sessionStorage:localStorage).removeItem(k); }catch(e){} }
+};
+
+/* ===================== utils ===================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pname = id => (S.players[id] && S.players[id].name) || '알 수 없음';
+const today = () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
+const fmtDate = s => { if(!s) return ''; const [y,m,d]=s.split('-'); return `${+m}월 ${+d}일`; };
+const sign = n => (n>0?'+':'')+n;
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),2400); }
+const isAdmin = () => !!S.adminPw;
+const myId = () => S.me && S.me.id;
+
+function validMatch(m){
+  return m && (m.type==='singles'||m.type==='doubles') && Array.isArray(m.a) && Array.isArray(m.b)
+    && Array.isArray(m.sets) && m.sets.length>0 && (m.winner==='A'||m.winner==='B');
+}
+
+/* ===================== data ===================== */
+async function rpc(fn, args){
+  const { data, error } = await S.sb.rpc(fn, args);
+  if(error) throw new Error(error.message || '요청을 처리하지 못했어요.');
+  return data;
+}
+async function load(){
+  try{
+    const [p, m, s] = await Promise.all([
+      S.sb.from('v_players').select('id,name,guest'),
+      S.sb.from('matches').select('*').order('created_at', {ascending:false}).limit(5000),
+      S.sb.from('v_settings').select('*').maybeSingle()
+    ]);
+    if(p.error || m.error) throw (p.error || m.error);
+    S.players = {}; for(const r of p.data) S.players[r.id] = r;
+    const rows = m.data.map(r => ({ id:r.id, type:r.type, a:r.a, b:r.b, sets:r.sets, winner:r.winner,
+      date:r.played_on, createdAt:Date.parse(r.created_at)||0, reportedBy:r.reported_by, status:r.status }));
+    S.matches = rows.filter(r=>r.status==='pending');
+    S.confirmed = rows.filter(r=>r.status==='confirmed');
+    if(s.data) S.settings = { rankingMode: s.data.ranking_mode==='elo'?'elo':'winrate', minGames: +s.data.min_games||0 };
+    if(S.me && !S.players[S.me.id]){ S.me = null; store.del('tl_session'); }
+    if(S.me) S.me.name = pname(S.me.id);
+    S.loaded = true; S.loadErr = false;
+  }catch(e){ console.error(e); S.loadErr = true; }
+  render();
+}
+
+/* ===================== stats ===================== */
+function computeStats(type){
+  const list = S.confirmed.filter(m => m.type===type && validMatch(m))
+    .slice().sort((x,y)=> (x.date||'').localeCompare(y.date||'') || (x.createdAt||0)-(y.createdAt||0));
+  const st = {};
+  const get = id => st[id] || (st[id] = {id, played:0, wins:0, losses:0, sw:0, sl:0, gw:0, gl:0, elo:ELO_START, form:[]});
+  for(const m of list){
+    const A = m.a.map(get), B = m.b.map(get);
+    let sa=0, sb=0, ga=0, gb=0;
+    for(const s of m.sets){ const x=+s[0]||0, y=+s[1]||0; ga+=x; gb+=y; if(x>y) sa++; else if(y>x) sb++; }
+    const aWin = m.winner==='A';
+    const ra = A.reduce((t,p)=>t+p.elo,0)/A.length, rb = B.reduce((t,p)=>t+p.elo,0)/B.length;
+    const ea = 1/(1+Math.pow(10,(rb-ra)/400));
+    const delta = ELO_K*((aWin?1:0)-ea);
+    for(const p of A){ p.played++; aWin?p.wins++:p.losses++; p.sw+=sa; p.sl+=sb; p.gw+=ga; p.gl+=gb; p.elo+=delta; p.form.push(aWin?'w':'l'); }
+    for(const p of B){ p.played++; aWin?p.losses++:p.wins++; p.sw+=sb; p.sl+=sa; p.gw+=gb; p.gl+=ga; p.elo-=delta; p.form.push(aWin?'l':'w'); }
+  }
+  return Object.values(st).map(p => ({...p, rate: p.played? p.wins/p.played : 0, sd:p.sw-p.sl, gd:p.gw-p.gl, form:p.form.slice(-5)}));
+}
+function rankRows(type){
+  const mode = S.settings.rankingMode, min = +S.settings.minGames||0;
+  const rows = computeStats(type);
+  const cmp = mode==='elo'
+    ? (a,b)=> b.elo-a.elo || b.rate-a.rate || b.wins-a.wins
+    : (a,b)=> b.rate-a.rate || b.wins-a.wins || b.sd-a.sd || b.gd-a.gd;
+  return { el: rows.filter(r=>r.played>=min).sort(cmp), inel: rows.filter(r=>r.played<min).sort(cmp) };
+}
+
+/* ===================== render ===================== */
+function render(){
+  const ae = document.activeElement;
+  if(ae && $('#main').contains(ae) && /INPUT|SELECT|TEXTAREA/.test(ae.tagName)){ S.pendingRender = true; return; }
+  S.pendingRender = false;
+  renderChrome();
+  const main = $('#main');
+  if(!S.sb){ main.innerHTML = `<div class="empty">사이트 설정이 아직 안 됐어요.<br>config.js에 Supabase 주소와 키를 넣어 주세요.</div>`; return; }
+  if(!S.loaded){ main.innerHTML = `<div class="empty">${S.loadErr ? '리그 데이터를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.' : '리그 데이터를 불러오는 중…'}</div>`; return; }
+  const html = { rank:viewRank, matches:viewMatches, players:viewPlayers, admin:viewAdmin }[S.tab]();
+  main.innerHTML = (S.loadErr ? `<div class="notice" style="margin-bottom:12px">연결이 불안정해 화면이 최신이 아닐 수 있어요.</div>` : '') + html;
+}
+function renderChrome(){
+  if(S.tab==='admin' && !isAdmin()) S.tab='rank';
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on', b.dataset.tab===S.tab));
+  const pend = S.matches.filter(validMatch).length;
+  document.querySelector('#tabs [data-tab="matches"]').innerHTML = '경기' + (pend? `<span class="badge num">${pend}</span>`:'');
+  const ab = $('#adminTab'); ab.hidden = !isAdmin();
+  ab.innerHTML = '운영' + (pend && isAdmin() ? `<span class="badge num">${pend}</span>`:'');
+  $('#adminLink').textContent = isAdmin() ? '운영자 로그아웃' : '운영자 로그인';
+  $('#adminLink').dataset.act = isAdmin() ? 'adminLogout' : 'adminLogin';
+  $('#fab').hidden = !(S.loaded && S.me);
+  const chip = $('#meChip');
+  if(!S.sb){ chip.innerHTML=''; return; }
+  chip.innerHTML = S.me
+    ? `<span class="me-chip">🎾 <b>${esc(S.me.name)}</b> 님으로 참가 중${isAdmin()?' · 운영자':''} · <button data-act="logout" style="text-decoration:underline;color:var(--muted)">로그아웃</button></span>`
+    : `<span style="display:inline-flex;gap:8px;margin-top:12px"><button class="btn primary sm" data-act="auth" data-mode="join">처음 참가</button><button class="btn sm" data-act="auth" data-mode="login">로그인</button></span>`;
+}
+
+const formDots = f => f.length ? `<span class="form" title="최근 ${f.length}경기">${f.map(x=>`<i class="${x}"></i>`).join('')}</span>` : '';
+const segBtn = (key,val,label) => `<button class="${S[key]===val?'on':''}" data-act="seg" data-key="${key}" data-val="${val}">${label}</button>`;
+
+function viewRank(){
+  const {el, inel} = rankRows(S.rankType);
+  const mode = S.settings.rankingMode, min = +S.settings.minGames||0;
+  let h = `<div class="row-between">
+    <div class="seg">${segBtn('rankType','singles','단식')}${segBtn('rankType','doubles','복식')}</div>
+    <span class="hint">${mode==='elo'?'ELO 레이팅 순 (시작 1500)':'승률 순 · 동률이면 승수 → 세트 득실 → 게임 득실'}</span></div>`;
+  if(!el.length && !inel.length)
+    return h + `<div class="empty">아직 확정된 ${S.rankType==='singles'?'단식':'복식'} 경기가 없어요.<br>경기 결과를 올리고 운영자가 확정하면 여기에 순위가 나타납니다.</div>`;
+  const row = (r,i,inel) => {
+    const big = mode==='elo' ? Math.round(r.elo) : (r.rate*100).toFixed(0)+'%';
+    const lbl = mode==='elo' ? `승률 ${(r.rate*100).toFixed(0)}%` : `레이팅 ${Math.round(r.elo)}`;
+    return `<button class="rank ${!inel&&i<3?'top'+(i+1):''} ${inel?'ineligible':''}" data-act="player" data-id="${esc(r.id)}">
+      <div class="pos num">${inel?'–':i+1}</div>
+      <div><div class="name">${esc(pname(r.id))}</div>
+        <div class="meta"><span class="num">${r.wins}승 ${r.losses}패</span><span class="num">세트 ${sign(r.sd)}</span><span class="num">게임 ${sign(r.gd)}</span>${formDots(r.form)}</div></div>
+      <div class="metric"><div class="big num">${big}</div><div class="lbl num">${lbl}</div></div></button>`;
+  };
+  h += `<div class="rank-list">${el.map((r,i)=>row(r,i,false)).join('')}</div>`;
+  if(inel.length) h += `<div class="divider-label">최소 ${min}경기 미만 (순위 미반영)</div><div class="rank-list">${inel.map((r,i)=>row(r,i,true)).join('')}</div>`;
+  return h;
+}
+
+function matchCard(m, pending, noActions){
+  const aWin = m.winner==='A';
+  const setsA = m.sets.map(s=>`<span class="${+s[0]>+s[1]?'hi':''}">${+s[0]}</span>`).join('');
+  const setsB = m.sets.map(s=>`<span class="${+s[1]>+s[0]?'hi':''}">${+s[1]}</span>`).join('');
+  const names = ids => ids.map(id=>esc(pname(id))).join(' · ');
+  let actions = '';
+  if(!noActions){
+    if(pending){
+      if(isAdmin()) actions = `<button class="btn sm danger" data-act="reject" data-id="${esc(m.id)}">삭제</button><button class="btn sm primary" data-act="confirm" data-id="${esc(m.id)}">확정</button>`;
+      else if(m.reportedBy && m.reportedBy===myId()) actions = `<button class="btn sm danger" data-act="cancel" data-id="${esc(m.id)}">내 입력 취소</button>`;
+    } else if(isAdmin()) actions = `<button class="btn sm" data-act="unconfirm" data-id="${esc(m.id)}">확정 취소</button>`;
+  }
+  return `<div class="match ${pending?'pending':''}">
+    <div class="match-top"><span>${fmtDate(m.date)} · <span class="tag">${m.type==='singles'?'단식':'복식'}</span></span>
+      <span>${pending?'<span class="tag p">확정 대기</span>':'<span class="tag c">확정</span>'}${m.reportedBy&&S.players[m.reportedBy]?` · 입력 ${esc(pname(m.reportedBy))}`:''}</span></div>
+    <div class="side ${aWin?'win':''}"><div class="who">${names(m.a)}</div><div class="sets">${setsA}</div></div>
+    <div class="side ${!aWin?'win':''}"><div class="who">${names(m.b)}</div><div class="sets">${setsB}</div></div>
+    ${actions?`<div class="match-actions">${actions}</div>`:''}</div>`;
+}
+const byRecent = (x,y)=> (y.date||'').localeCompare(x.date||'') || (y.createdAt||0)-(x.createdAt||0);
+
+function viewMatches(){
+  const pend = S.matches.filter(validMatch).sort(byRecent), conf = S.confirmed.filter(validMatch).sort(byRecent);
+  let h = `<div class="row-between"><div class="seg">${segBtn('matchView','pending',`확정 대기 ${pend.length}`)}${segBtn('matchView','confirmed',`확정됨 ${conf.length}`)}</div></div>`;
+  const list = S.matchView==='pending' ? pend : conf;
+  if(!list.length) return h + `<div class="empty">${S.matchView==='pending'?'확정을 기다리는 경기가 없어요.':'아직 확정된 경기가 없어요.'}</div>`;
+  return h + `<div class="stack">${list.slice(0,200).map(m=>matchCard(m, S.matchView==='pending')).join('')}</div>`;
+}
+
+function viewPlayers(){
+  const ids = Object.keys(S.players).sort((a,b)=>pname(a).localeCompare(pname(b),'ko'));
+  const st = {}; for(const t of ['singles','doubles']) for(const r of computeStats(t)) (st[r.id] ||= {})[t]=r;
+  let h = '';
+  if(!S.me) h += `<div class="card" style="margin-bottom:14px"><b>리그에 참가하기</b><p class="hint" style="margin:6px 0 12px">이름과 숫자 PIN만 정하면 바로 참가할 수 있어요.</p>
+      <div style="display:flex;gap:8px"><button class="btn primary" data-act="auth" data-mode="join">처음 참가</button><button class="btn" data-act="auth" data-mode="login">로그인</button></div></div>`;
+  if(!ids.length) return h + `<div class="empty">아직 참가한 선수가 없어요.</div>`;
+  h += `<div class="stack">` + ids.map(id=>{
+    const s=st[id]?.singles, d=st[id]?.doubles;
+    const txt = [s?`단식 ${s.wins}승 ${s.losses}패`:'', d?`복식 ${d.wins}승 ${d.losses}패`:''].filter(Boolean).join(' · ') || '경기 기록 없음';
+    return `<button class="player-row" data-act="player" data-id="${esc(id)}"><span><b>${esc(pname(id))}</b>${id===myId()?' <span class="tag">나</span>':''}${S.players[id].guest?' <span class="tag">운영자 등록</span>':''}</span><span class="r num">${txt}</span></button>`;
+  }).join('') + `</div>`;
+  if(S.me) h += `<div style="margin-top:14px;text-align:right"><button class="btn sm" data-act="rename" data-id="${esc(myId())}">내 이름 바꾸기</button></div>`;
+  return h;
+}
+
+function viewAdmin(){
+  const pend = S.matches.filter(validMatch), mode = S.settings.rankingMode;
+  return `
+  <h2 class="sec" style="margin-top:4px">확정 대기 경기</h2>
+  <div class="card"><div class="row-between" style="margin:0"><span><b class="num">${pend.length}</b>경기가 확정을 기다리고 있어요.</span>
+    <button class="btn primary" data-act="confirmAll" ${pend.length?'':'disabled'}>한꺼번에 확정</button></div>
+    <p class="hint" style="margin-top:8px">하나씩 확인하려면 ‘경기’ 탭에서 확정하거나 삭제하세요. 확정된 결과는 참가자가 고칠 수 없어요.</p></div>
+
+  <h2 class="sec">순위 기준</h2>
+  <div class="card">
+    <div class="radio-row" id="modeRow">
+      <label class="${mode==='winrate'?'on':''}"><input type="radio" name="mode" value="winrate" ${mode==='winrate'?'checked':''}><b>승률</b><small>이긴 경기 ÷ 전체 경기</small></label>
+      <label class="${mode==='elo'?'on':''}"><input type="radio" name="mode" value="elo" ${mode==='elo'?'checked':''}><b>ELO 레이팅</b><small>강한 상대를 이길수록 점수가 더 오름</small></label>
+    </div>
+    <div style="margin-top:12px"><label class="f" for="minGames">순위에 반영할 최소 경기 수</label>
+      <input class="inp num" id="minGames" type="number" min="0" max="50" value="${+S.settings.minGames||0}" style="max-width:120px"></div>
+    <p class="hint" style="margin-top:10px">레이팅은 지금까지 확정된 모든 경기로 계속 계산되고 있어서, 언제 바꿔도 과거 기록이 그대로 반영돼요.</p>
+    <div style="text-align:right;margin-top:12px"><button class="btn primary" data-act="saveSettings">저장</button></div>
+  </div>
+
+  <h2 class="sec">선수 직접 등록</h2>
+  <div class="card"><p class="hint" style="margin-bottom:10px">이름만 미리 등록해 두면 다른 참가자가 그 선수와의 경기를 올릴 수 있어요. 나중에 그 선수가 같은 이름으로 ‘처음 참가’하면 기록을 그대로 이어받아요.</p>
+    <div style="display:flex;gap:8px"><input class="inp" id="guestName" maxlength="20" placeholder="선수 이름"><button class="btn" data-act="addGuest">등록</button></div></div>
+
+  <h2 class="sec">운영자 비밀번호 바꾸기</h2>
+  <div class="card"><div style="display:flex;gap:8px"><input class="inp" id="newPw" type="password" placeholder="새 비밀번호 (6자 이상)"><button class="btn" data-act="changePw">변경</button></div>
+    <p class="hint" style="margin-top:8px">PIN을 잊은 선수는 ‘선수’ 탭에서 이름을 누르면 PIN을 다시 정해 줄 수 있어요.</p></div>`;
+}
+
+/* ===================== modals ===================== */
+function openModal(html){ $('#modal').innerHTML = html; $('#overlay').classList.add('open'); }
+function closeModal(){ $('#overlay').classList.remove('open'); $('#modal').innerHTML=''; if(S.pendingRender) render(); }
+$('#overlay').addEventListener('click', e=>{ if(e.target.id==='overlay') closeModal(); });
+
+function busy(btn, on, label){ if(!btn) return; btn.disabled = on; if(label) btn.textContent = label; }
+
+function openAuth(mode){
+  openModal(`<h3>${mode==='join'?'리그에 처음 참가하기':'로그인'}</h3>
+    <div class="stack">
+      <div><label class="f" for="auName">이름 (순위표에 표시돼요)</label><input class="inp" id="auName" maxlength="20" autocomplete="username"></div>
+      <div><label class="f" for="auPin">PIN (숫자 4~6자리)</label><input class="inp num" id="auPin" type="password" inputmode="numeric" maxlength="6" autocomplete="${mode==='join'?'new-password':'current-password'}"></div>
+    </div>
+    <p class="hint" style="margin-top:10px">${mode==='join'?'PIN은 결과를 올리거나 다른 기기에서 로그인할 때 써요. 잊어버리면 운영자에게 다시 정해 달라고 하세요.':'한 번 로그인하면 이 기기에서는 로그아웃할 때까지 자동으로 로그인돼요.'}</p>
+    <div class="err" id="auErr"></div>
+    <div class="modal-foot"><button class="btn" data-act="auth" data-mode="${mode==='join'?'login':'join'}">${mode==='join'?'이미 참가했어요':'처음이에요'}</button><button class="btn primary" id="auOk">${mode==='join'?'참가하기':'로그인'}</button></div>`);
+  setTimeout(()=>$('#auName')?.focus(), 50);
+  const go = async () => {
+    const name = $('#auName').value.trim(), pin = $('#auPin').value.trim();
+    if(!name) return $('#auErr').textContent='이름을 입력해 주세요.';
+    if(!/^\d{4,6}$/.test(pin)) return $('#auErr').textContent='PIN은 숫자 4~6자리로 입력해 주세요.';
+    busy($('#auOk'), true);
+    try{
+      const id = await rpc(mode==='join'?'join_league':'login', {p_name:name, p_pin:pin});
+      S.me = {id, pin, name}; store.set('tl_session', {id, pin});
+      closeModal(); await load(); toast(mode==='join'?`${S.me.name} 님, 환영해요!`:`${S.me.name} 님, 다시 오셨네요!`);
+    }catch(e){ $('#auErr').textContent = e.message; busy($('#auOk'), false); }
+  };
+  $('#auOk').onclick = go;
+  $('#auPin').addEventListener('keydown', e=>{ if(e.key==='Enter') go(); });
+}
+
+function openAdminLogin(){
+  openModal(`<h3>운영자 로그인</h3><input class="inp" id="adPw" type="password" placeholder="운영자 비밀번호" autocomplete="current-password">
+    <div class="err" id="adErr"></div>
+    <div class="modal-foot"><button class="btn" data-act="close">취소</button><button class="btn primary" id="adOk">로그인</button></div>`);
+  setTimeout(()=>$('#adPw')?.focus(), 50);
+  const go = async () => {
+    const pw = $('#adPw').value; busy($('#adOk'), true);
+    try{ await rpc('admin_login', {p_pw:pw}); S.adminPw = pw; store.set('tl_admin', pw, true); closeModal(); S.tab='admin'; render(); toast('운영자로 로그인했어요.'); }
+    catch(e){ $('#adErr').textContent = e.message; busy($('#adOk'), false); }
+  };
+  $('#adOk').onclick = go;
+  $('#adPw').addEventListener('keydown', e=>{ if(e.key==='Enter') go(); });
+}
+
+function playerOptions(sel){
+  const ids = Object.keys(S.players).sort((a,b)=>pname(a).localeCompare(pname(b),'ko'));
+  return `<option value="">선수 선택</option>` + ids.map(id=>`<option value="${esc(id)}" ${id===sel?'selected':''}>${esc(pname(id))}${id===myId()?' (나)':''}</option>`).join('');
+}
+function openMatchForm(){
+  if(!S.me) return openAuth('login');
+  const F = { type: S.rankType };
+  openModal(`<h3>경기 결과 입력</h3>
+    <div class="seg" id="mfType" style="margin-bottom:14px"><button data-t="singles">단식</button><button data-t="doubles">복식</button></div>
+    <div class="vs">
+      <div class="teambox"><h4>A팀</h4><select class="inp" id="a1">${playerOptions(myId())}</select><select class="inp dbl" id="a2">${playerOptions()}</select></div>
+      <div class="teambox"><h4>B팀</h4><select class="inp" id="b1">${playerOptions()}</select><select class="inp dbl" id="b2">${playerOptions()}</select></div>
+    </div>
+    <div style="margin-top:14px"><label class="f">세트 스코어 (게임 수 · 안 한 세트는 비워 두세요)</label>
+      <div class="setgrid"><span></span><span class="h">A팀</span><span class="h">B팀</span>
+        ${[1,2,3].map(i=>`<span class="h">${i}세트</span><input class="inp num" inputmode="numeric" id="s${i}a" maxlength="2"><input class="inp num" inputmode="numeric" id="s${i}b" maxlength="2">`).join('')}
+      </div></div>
+    <div style="margin-top:12px"><label class="f" for="mDate">경기 날짜</label><input class="inp" type="date" id="mDate" value="${today()}"></div>
+    <div class="preview" id="mPrev">스코어를 입력하면 결과가 여기에 보여요.</div>
+    <div class="err" id="mErr"></div>
+    <div class="modal-foot"><button class="btn" data-act="close">취소</button><button class="btn primary" id="mSubmit">올리기</button></div>`);
+  const read = () => {
+    const a = [ $('#a1').value ].concat(F.type==='doubles'?[$('#a2').value]:[]);
+    const b = [ $('#b1').value ].concat(F.type==='doubles'?[$('#b2').value]:[]);
+    const sets = []; let bad = false;
+    for(const i of [1,2,3]){
+      const x=$(`#s${i}a`).value.trim(), y=$(`#s${i}b`).value.trim();
+      if(x===''&&y==='') continue;
+      if(!/^\d{1,2}$/.test(x)||!/^\d{1,2}$/.test(y)){ bad='세트 스코어는 숫자로 양쪽 모두 입력해 주세요.'; continue; }
+      if(+x===+y){ bad=`${i}세트가 동점이에요. 이긴 쪽이 있어야 해요.`; continue; }
+      sets.push([+x,+y]);
+    }
+    const sa = sets.filter(s=>s[0]>s[1]).length, sb = sets.filter(s=>s[1]>s[0]).length;
+    let err = bad;
+    if(!err){
+      if([...a,...b].some(v=>!v)) err='선수를 모두 선택해 주세요.';
+      else if(new Set([...a,...b]).size !== a.length+b.length) err='같은 선수를 두 번 고를 수 없어요.';
+      else if(![...a,...b].includes(myId())) err='내가 뛴 경기만 올릴 수 있어요.';
+      else if(!sets.length) err='세트 스코어를 하나 이상 입력해 주세요.';
+      else if(sa===sb) err='세트 수가 동률이에요. 승패가 갈리도록 입력해 주세요.';
+    }
+    return {a,b,sets,sa,sb,err,date:$('#mDate').value||today(),winner: sa>sb?'A':'B'};
+  };
+  const upd = () => {
+    const r = read();
+    const names = ids => ids.filter(Boolean).map(pname).join(' · ') || '?';
+    $('#mPrev').innerHTML = (r.sets.length && r.sa!==r.sb)
+      ? `<b>${esc(names(r.winner==='A'?r.a:r.b))}</b> 승 · 세트 <span class="num">${Math.max(r.sa,r.sb)}-${Math.min(r.sa,r.sb)}</span> <span class="hint num">(${r.sets.map(s=>s.join('-')).join(', ')})</span>`
+      : '스코어를 입력하면 결과가 여기에 보여요.';
+    $('#mErr').textContent = '';
+  };
+  const setType = t => { F.type=t; document.querySelectorAll('#mfType button').forEach(b=>b.classList.toggle('on',b.dataset.t===t)); document.querySelectorAll('.dbl').forEach(e=>e.style.display=t==='doubles'?'':'none'); upd(); };
+  document.querySelectorAll('#mfType button').forEach(b=>b.onclick=()=>setType(b.dataset.t));
+  $('#modal').addEventListener('input', upd); $('#modal').addEventListener('change', upd);
+  setType(F.type);
+  $('#mSubmit').onclick = async () => {
+    const r = read();
+    if(r.err){ $('#mErr').textContent = r.err; return; }
+    busy($('#mSubmit'), true, '올리는 중…');
+    try{
+      await rpc('report_match', { p_player:myId(), p_pin:S.me.pin, p_type:F.type, p_a:r.a, p_b:r.b, p_sets:r.sets, p_date:r.date });
+      closeModal(); S.tab='matches'; S.matchView='pending'; await load(); toast('결과를 올렸어요. 운영자 확정을 기다려요.');
+    }catch(e){ $('#mErr').textContent = e.message; busy($('#mSubmit'), false, '올리기'); }
+  };
+}
+
+function openPlayer(id){
+  const s = computeStats('singles').find(r=>r.id===id), d = computeStats('doubles').find(r=>r.id===id);
+  const all = S.confirmed.filter(m=>validMatch(m) && (m.a.includes(id)||m.b.includes(id))).sort(byRecent);
+  const block = (t,r) => r ? `<div class="divider-label">${t}</div><div class="stat-grid">
+      <div class="stat"><div class="v num">${r.wins}-${r.losses}</div><div class="k">승-패</div></div>
+      <div class="stat"><div class="v num">${(r.rate*100).toFixed(0)}%</div><div class="k">승률</div></div>
+      <div class="stat"><div class="v num">${Math.round(r.elo)}</div><div class="k">레이팅</div></div></div>` : '';
+  const h2h = {};
+  for(const m of all.filter(m=>m.type==='singles')){
+    const opp = m.a.includes(id)? m.b[0] : m.a[0];
+    const won = (m.a.includes(id) && m.winner==='A') || (m.b.includes(id) && m.winner==='B');
+    (h2h[opp] ||= {w:0,l:0})[won?'w':'l']++;
+  }
+  const h2hHtml = Object.keys(h2h).length ? `<div class="divider-label">단식 상대 전적</div><div class="stack">${Object.entries(h2h).map(([o,v])=>`<div class="player-row" style="cursor:default"><span>${esc(pname(o))}</span><span class="num">${v.w}승 ${v.l}패</span></div>`).join('')}</div>` : '';
+  openModal(`<h3>${esc(pname(id))}</h3>
+    ${block('단식',s)}${block('복식',d)}
+    ${!s&&!d?'<div class="empty" style="padding:16px">아직 확정된 경기가 없어요.</div>':''}
+    ${h2hHtml}
+    ${all.length?`<div class="divider-label">최근 경기</div><div class="stack">${all.slice(0,8).map(m=>matchCard(m,false,true)).join('')}</div>`:''}
+    <div class="modal-foot">${isAdmin()?`<button class="btn sm" data-act="resetPin" data-id="${esc(id)}">PIN 다시 정하기</button><button class="btn sm" data-act="rename" data-id="${esc(id)}">이름 수정</button>`:''}<button class="btn" data-act="close">닫기</button></div>`);
+}
+
+function openInput(title, opts, onOk){
+  openModal(`<h3>${esc(title)}</h3><input class="inp ${opts.num?'num':''}" id="inV" maxlength="${opts.max||20}" value="${esc(opts.value||'')}" ${opts.num?'inputmode="numeric" type="password"':''} placeholder="${esc(opts.ph||'')}">
+    <div class="err" id="inErr"></div>
+    <div class="modal-foot"><button class="btn" data-act="close">취소</button><button class="btn primary" id="inOk">저장</button></div>`);
+  setTimeout(()=>$('#inV')?.focus(), 50);
+  $('#inOk').onclick = async () => {
+    const v = $('#inV').value.trim(); if(!v){ $('#inErr').textContent='값을 입력해 주세요.'; return; }
+    busy($('#inOk'), true);
+    try{ await onOk(v); closeModal(); await load(); }catch(e){ $('#inErr').textContent = e.message; busy($('#inOk'), false); }
+  };
+}
+
+function openConfirmDialog(msg, okLabel, fn){
+  openModal(`<h3>${esc(msg)}</h3><div class="err" id="cfErr"></div><div class="modal-foot"><button class="btn" data-act="close">아니요</button><button class="btn primary" id="cfOk">${esc(okLabel)}</button></div>`);
+  $('#cfOk').onclick = async () => { busy($('#cfOk'), true); try{ await fn(); closeModal(); await load(); }catch(e){ $('#cfErr').textContent = e.message; busy($('#cfOk'), false); } };
+}
+
+/* ===================== actions ===================== */
+document.addEventListener('click', async e => {
+  const t = e.target.closest('[data-act],[data-tab]'); if(!t) return;
+  if(t.dataset.tab){ S.tab=t.dataset.tab; render(); window.scrollTo({top:0}); return; }
+  const act = t.dataset.act, id = t.dataset.id, pw = S.adminPw;
+  try{
+    switch(act){
+      case 'close': return closeModal();
+      case 'seg': S[t.dataset.key]=t.dataset.val; return render();
+      case 'player': return openPlayer(id);
+      case 'auth': return openAuth(t.dataset.mode);
+      case 'logout': S.me=null; store.del('tl_session'); render(); return toast('로그아웃했어요.');
+      case 'adminLogin': return openAdminLogin();
+      case 'adminLogout': S.adminPw=null; store.del('tl_admin', true); render(); return toast('운영자 모드를 끝냈어요.');
+      case 'rename':
+        return openInput('이름 바꾸기', {value:pname(id)}, v =>
+          isAdmin() && id!==myId() ? rpc('admin_rename',{p_pw:pw,p_id:id,p_name:v}) : rpc('rename_me',{p_player:myId(),p_pin:S.me.pin,p_name:v}));
+      case 'resetPin':
+        return openInput(`${pname(id)} 선수의 새 PIN`, {num:true,max:6,ph:'숫자 4~6자리'}, v => rpc('admin_reset_pin',{p_pw:pw,p_id:id,p_pin:v}).then(()=>toast('PIN을 바꿨어요. 선수에게 알려 주세요.')));
+      case 'confirm': busy(t,true); await rpc('admin_confirm',{p_pw:pw,p_ids:[id]}); await load(); return toast('확정했어요.');
+      case 'reject': return openConfirmDialog('이 경기 결과를 삭제할까요?','삭제', ()=>rpc('admin_delete_match',{p_pw:pw,p_id:id}));
+      case 'cancel': return openConfirmDialog('내가 올린 결과를 취소할까요?','취소하기', ()=>rpc('cancel_match',{p_player:myId(),p_pin:S.me.pin,p_id:id}));
+      case 'unconfirm': return openConfirmDialog('확정을 취소하고 대기 상태로 돌릴까요?','확정 취소', ()=>rpc('admin_unconfirm',{p_pw:pw,p_id:id}));
+      case 'confirmAll': {
+        const ids = S.matches.filter(validMatch).map(m=>m.id);
+        return openConfirmDialog(`대기 중인 ${ids.length}경기를 모두 확정할까요?`,'모두 확정', async()=>{ const n = await rpc('admin_confirm',{p_pw:pw,p_ids:ids}); toast(`${n}경기를 확정했어요.`); });
+      }
+      case 'saveSettings': {
+        const mode = document.querySelector('input[name="mode"]:checked')?.value || 'winrate';
+        const min = Math.max(0, Math.min(50, parseInt($('#minGames').value,10)||0));
+        busy(t,true); await rpc('admin_settings',{p_pw:pw,p_mode:mode,p_min:min}); busy(t,false); await load(); return toast('순위 기준을 저장했어요.');
+      }
+      case 'addGuest': {
+        const n = $('#guestName').value.trim(); if(!n) return toast('이름을 입력해 주세요.');
+        busy(t,true); await rpc('admin_add_guest',{p_pw:pw,p_name:n}); $('#guestName').value=''; busy(t,false); await load(); return toast(`${n} 선수를 등록했어요.`);
+      }
+      case 'changePw': {
+        const v = $('#newPw').value; if(v.length<6) return toast('새 비밀번호는 6자 이상으로 정해 주세요.');
+        busy(t,true); await rpc('admin_change_password',{p_pw:pw,p_new:v}); S.adminPw=v; store.set('tl_admin', v, true); $('#newPw').value=''; busy(t,false); return toast('운영자 비밀번호를 바꿨어요.');
+      }
+    }
+  }catch(err){
+    busy(t,false); toast(err.message);
+    if(/로그인 정보가 맞지 않아요/.test(err.message)){ S.me=null; store.del('tl_session'); render(); }
+    if(/운영자 비밀번호가 맞지 않아요/.test(err.message)){ S.adminPw=null; store.del('tl_admin', true); render(); }
+  }
+});
+document.addEventListener('change', e => {
+  if(e.target.name==='mode') document.querySelectorAll('#modeRow label').forEach(l=>l.classList.toggle('on', l.querySelector('input').checked));
+});
+document.addEventListener('focusout', () => setTimeout(()=>{ if(S.pendingRender && !$('#overlay').classList.contains('open')) render(); }, 0));
+$('#fab').onclick = () => openMatchForm();
+
+/* ===================== boot ===================== */
+(function boot(){
+  const cfg = window.LEAGUE_CONFIG || {};
+  const ok = cfg.SUPABASE_URL && cfg.SUPABASE_ANON_KEY && !/여기에|YOUR_/.test(cfg.SUPABASE_URL + cfg.SUPABASE_ANON_KEY);
+  if(ok && window.supabase){
+    S.sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY, { auth:{ persistSession:false } });
+    const sess = store.get('tl_session'); if(sess && sess.id && sess.pin) S.me = {id:sess.id, pin:sess.pin, name:''};
+    S.adminPw = store.get('tl_admin', true);
+    load();
+    setInterval(()=>{ if(document.visibilityState==='visible' && !$('#overlay').classList.contains('open')) load(); }, 30000);
+    document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') load(); });
+  }
+  render();
+})();
+</script>
+</body>
+</html>
